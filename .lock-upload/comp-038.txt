@@ -3,7 +3,7 @@
             },
             "funding": [
                 {
-                    "url": "https://github.com/theseer/tokenizer/issues",
+                    "url": "https://github.com/theseer",
                     "type": "github"
                 }
             ],
