@@ -19,7 +19,6 @@ return new class extends Migration
             $table->unsignedSmallInteger('failed_login_attempts')->default(0)->after('locked_until');
             $table->timestamp('last_login_at')->nullable()->after('failed_login_attempts');
             $table->string('last_login_ip', 45)->nullable()->after('last_login_at');
-
             $table->index('active_role');
             $table->index('locked_until');
         });
@@ -30,19 +29,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropIndex(['active_role']);
             $table->dropIndex(['locked_until']);
-
-            $table->dropColumn([
-                'email_verified',
-                'google_id',
-                'two_factor_secret',
-                'two_factor_recovery_codes',
-                'two_factor_confirmed_at',
-                'active_role',
-                'locked_until',
-                'failed_login_attempts',
-                'last_login_at',
-                'last_login_ip',
-            ]);
+            $table->dropColumn(['email_verified','google_id','two_factor_secret','two_factor_recovery_codes','two_factor_confirmed_at','active_role','locked_until','failed_login_attempts','last_login_at','last_login_ip']);
         });
     }
 };
