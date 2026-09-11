@@ -33,7 +33,6 @@ return new class extends Migration
             $table->index(['marketplace_job_id', 'payment_type']);
             $table->index('gateway_reference');
         });
-
         Schema::create('payment_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payment_id')->constrained()->cascadeOnDelete();
@@ -49,7 +48,6 @@ return new class extends Migration
             $table->index(['payment_id', 'attempt_number']);
             $table->index('status');
         });
-
         Schema::create('payment_gateway_events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payment_id')->nullable()->constrained()->nullOnDelete();
@@ -64,11 +62,5 @@ return new class extends Migration
             $table->index(['payment_id', 'event_type']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('payment_gateway_events');
-        Schema::dropIfExists('payment_attempts');
-        Schema::dropIfExists('payments');
-    }
+    public function down(): void { Schema::dropIfExists('payment_gateway_events'); Schema::dropIfExists('payment_attempts'); Schema::dropIfExists('payments'); }
 };

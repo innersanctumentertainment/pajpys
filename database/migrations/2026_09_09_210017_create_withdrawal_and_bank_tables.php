@@ -22,10 +22,8 @@ return new class extends Migration
             $table->boolean('is_verified')->default(false);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['user_id', 'is_default']);
         });
-
         Schema::create('withdrawal_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -45,15 +43,9 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['user_id', 'status']);
             $table->index(['status', 'created_at']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('withdrawal_requests');
-        Schema::dropIfExists('bank_details');
-    }
+    public function down(): void { Schema::dropIfExists('withdrawal_requests'); Schema::dropIfExists('bank_details'); }
 };

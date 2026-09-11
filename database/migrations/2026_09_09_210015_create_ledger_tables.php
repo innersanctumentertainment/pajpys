@@ -19,7 +19,6 @@ return new class extends Migration
             $table->timestamps();
             $table->index(['account_type', 'is_active']);
         });
-
         Schema::create('ledger_entries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ledger_account_id')->constrained()->restrictOnDelete();
@@ -38,10 +37,5 @@ return new class extends Migration
             $table->index('entry_type');
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('ledger_entries');
-        Schema::dropIfExists('ledger_accounts');
-    }
+    public function down(): void { Schema::dropIfExists('ledger_entries'); Schema::dropIfExists('ledger_accounts'); }
 };

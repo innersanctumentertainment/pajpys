@@ -19,14 +19,9 @@ return new class extends Migration
             $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
-
             $table->unique(['user_id', 'wallet_type', 'currency']);
             $table->index(['wallet_type', 'status']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('wallets');
-    }
+    public function down(): void { Schema::dropIfExists('wallets'); }
 };

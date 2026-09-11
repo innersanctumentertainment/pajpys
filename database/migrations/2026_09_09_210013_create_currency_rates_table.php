@@ -19,9 +19,5 @@ return new class extends Migration
             $table->index(['base_currency', 'quote_currency']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('currency_rates');
-    }
+    public function down(): void { Schema::dropIfExists('currency_rates'); }
 };
