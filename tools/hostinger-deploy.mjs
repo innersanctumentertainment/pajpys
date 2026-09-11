@@ -1,39 +1,37 @@
 #!/usr/bin/env node
 /**
- * Deploy PAJPYS to agapetech.org/pajpys/ without replacing the marketing site.
+ * Deploy PAJPYS to Hostinger under public_html/{DEPLOY_PREFIX}/ via TUS uploads,
+ * same pattern as tactile, compo-compre, and quickinvoice.
  *
- *   HOSTINGER_API_TOKEN=... ENV_B64=... DEPLOY_SECRET=... node tools/hostinger-deploy.mjs
+ * Subdomain pajpys.agapetech.org uses the public/ folder as document root.
  *
- * Builds a release zip (pajpys/ web root + pajpys_app/ Laravel core), uploads via
- * Hostinger Files API, extracts on-server, then uploads production .env separately.
+ *   DEPLOY_PREFIX=pajpys HOSTINGER_API_TOKEN=... APP_ENV_B64=... node tools/hostinger-deploy.mjs
+ *
+ * APP_ENV_B64 (or legacy ENV_B64) uploads production .env. Server-side .env is never
+ * deleted when omitted — only overwritten when the secret is set.
  */
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
-import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
-import {
-  DEFAULT_DOMAIN,
-  DEFAULT_USERNAME,
-  DEPLOY_PREFIX,
-  clearWebsiteCache,
-  getUploadCredentials,
-  uploadRemoteFile,
-  verifySiteLive,
-  withRetries,
-} from './hostinger-lib.mjs';
+import * as tus from 'tus-js-client';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const token = process.env.HOSTINGER_API_TOKEN;
-const username = DEFAULT_USERNAME;
-const domain = DEFAULT_DOMAIN;
-const prefix = DEPLOY_PREFIX.replace(/^\/+|\/+$/g, '');
+const ROOT = path.resolve(__dirname, '..');
+const TOKEN = process.env.HOSTINGER_API_TOKEN;
+const USERNAME = process.env.HOSTINGER_USERNAME || 'u508215107';
+const DOMAIN = process.env.HOSTINGER_DOMAIN || 'agapetech.org';
+const PREFIX = (process.env.DEPLOY_PREFIX || 'pajpys').replace(/^\/+|\/+$/g, '');
+const BASE_URL = 'https://developers.hostinger.com/';
+const LIVE_URL = process.env.PAJPYS_LIVE_URL || `https://${PREFIX}.${DOMAIN}/`;
 
-if (!token) {
+if (!TOKEN) {
   console.error('HOSTINGER_API_TOKEN is required');
+  process.exit(1);
+}
+if (!PREFIX) {
+  console.error('DEPLOY_PREFIX is required');
   process.exit(1);
 }
 
@@ -47,221 +45,196 @@ const SKIP_TOP = new Set([
   'deploy',
   'tools',
   'scripts',
+  'docs',
+]);
+const SKIP_NAMES = new Set([
   '.env',
+  '.env.local',
+  '.env.production',
   '.env.example',
+  'package.json',
+  'package-lock.json',
   'phpunit.xml',
   'README.md',
   'AGENTS.md',
   'CLAUDE.md',
 ]);
+const SKIP_PREFIXES = [
+  'database/database.sqlite',
+  'storage/logs/',
+  'storage/framework/sessions/',
+  'storage/framework/cache/data/',
+  'storage/framework/views/',
+  'bootstrap/cache/',
+];
 
-function copyTree(srcRoot, destRoot, rel = '') {
-  const abs = rel ? path.join(srcRoot, rel) : srcRoot;
-  for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
-    const childRel = rel ? path.join(rel, entry.name) : entry.name;
-    const top = childRel.split(/[\\/]/)[0];
-    if (!rel && SKIP_TOP.has(top)) continue;
-    if (childRel.replace(/\\/g, '/') === 'public') continue;
-    const from = path.join(srcRoot, childRel);
-    const to = path.join(destRoot, 'pajpys_app', childRel);
-    if (entry.isDirectory()) {
-      fs.mkdirSync(to, { recursive: true });
-      copyTree(srcRoot, destRoot, childRel);
-    } else {
-      fs.mkdirSync(path.dirname(to), { recursive: true });
-      fs.copyFileSync(from, to);
-    }
+function shouldSkip(rel) {
+  const norm = rel.replace(/\\/g, '/');
+  const top = norm.split('/')[0];
+  if (SKIP_TOP.has(top)) return true;
+  if (SKIP_NAMES.has(path.basename(norm))) return true;
+  return SKIP_PREFIXES.some((p) => norm === p || norm.startsWith(p));
+}
+
+function walkFiles(dir, base = '') {
+  const out = [];
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = base ? `${base}/${ent.name}` : ent.name;
+    if (shouldSkip(rel)) continue;
+    const abs = path.join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...walkFiles(abs, rel));
+    else out.push(rel.replace(/\\/g, '/'));
   }
+  return out;
 }
 
-function writePublicIndex(stage) {
-  const index = `<?php
+const headers = {
+  Authorization: `Bearer ${TOKEN}`,
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
+};
 
-use Illuminate\\Foundation\\Application;
-use Illuminate\\Http\\Request;
-
-define('LARAVEL_START', microtime(true));
-
-$appRoot = dirname(__DIR__) . '/pajpys_app';
-
-if (file_exists($maintenance = $appRoot.'/storage/framework/maintenance.php')) {
-    require $maintenance;
+async function getCreds() {
+  const { data, status } = await axios.post(
+    `${BASE_URL}api/hosting/v1/files/upload-urls`,
+    { username: USERNAME, domain: DOMAIN },
+    { headers, validateStatus: () => true, timeout: 60000 }
+  );
+  if (status !== 200) throw new Error(`upload-urls ${status}: ${JSON.stringify(data)}`);
+  return data;
 }
 
-require $appRoot.'/vendor/autoload.php';
-
-/** @var Application $app */
-$app = require_once $appRoot.'/bootstrap/app.php';
-
-$app->handleRequest(Request::capture());
-`;
-  fs.writeFileSync(path.join(stage, prefix, 'index.php'), index);
+function uploadFile(localPath, remotePath, creds) {
+  return new Promise((resolve, reject) => {
+    const stats = fs.statSync(localPath);
+    const cleanUploadUrl = creds.url.replace(/\/$/, '');
+    const uploadUrlWithFile = `${cleanUploadUrl}/${remotePath.replace(/^\/+/, '')}?override=true`;
+    const requestHeaders = {
+      'X-Auth': creds.auth_key,
+      'X-Auth-Rest': creds.rest_auth_key,
+      'upload-length': String(stats.size),
+      'upload-offset': '0',
+    };
+    axios
+      .post(uploadUrlWithFile, '', {
+        headers: requestHeaders,
+        timeout: 120000,
+        validateStatus: (s) => s === 201,
+      })
+      .then(() => {
+        const upload = new tus.Upload(fs.createReadStream(localPath), {
+          uploadUrl: uploadUrlWithFile,
+          retryDelays: [1000, 2000, 4000, 8000],
+          uploadDataDuringCreation: false,
+          parallelUploads: 1,
+          chunkSize: 1048576,
+          headers: requestHeaders,
+          removeFingerprintOnSuccess: true,
+          uploadSize: stats.size,
+          metadata: { filename: path.basename(remotePath) },
+          onError: (error) => reject(error),
+          onSuccess: () => resolve(remotePath),
+        });
+        upload.start();
+      })
+      .catch(reject);
+  });
 }
 
-function writePublicHtaccess(stage) {
-  const htaccess = `<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
-    RewriteEngine On
-    RewriteBase /${prefix}/
-
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
-
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-`;
-  fs.writeFileSync(path.join(stage, prefix, '.htaccess'), htaccess);
-}
-
-function writeAppHtaccess(stage) {
-  fs.writeFileSync(path.join(stage, 'pajpys_app', '.htaccess'), 'Deny from all\n');
-}
-
-function buildRelease() {
-  const id = crypto.randomBytes(8).toString('hex');
-  const stage = path.join(os.tmpdir(), `pajpys-stage-${id}`);
-  const zipPath = path.join(os.tmpdir(), `pajpys_release_${id}.zip`);
-
-  fs.rmSync(stage, { recursive: true, force: true });
-  fs.mkdirSync(path.join(stage, prefix), { recursive: true });
-  fs.mkdirSync(path.join(stage, 'pajpys_app'), { recursive: true });
-
+function buildApp() {
   console.log('Installing PHP dependencies (production)...');
   execSync('composer install --no-dev --optimize-autoloader --no-interaction', {
-    cwd: root,
+    cwd: ROOT,
     stdio: 'inherit',
   });
 
   console.log('Building frontend assets...');
-  execSync('npm ci --ignore-scripts && npm run build', { cwd: root, stdio: 'inherit' });
+  execSync('npm ci --ignore-scripts && npm run build', { cwd: ROOT, stdio: 'inherit' });
+}
 
-  console.log('Staging application files...');
-  copyTree(root, stage);
-  writePublicIndex(stage);
-  writePublicHtaccess(stage);
-  writeAppHtaccess(stage);
+async function ensureSubdomain() {
+  const listUrl = `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/subdomains`;
+  const { data: listData, status: listStatus } = await axios.get(listUrl, {
+    headers,
+    validateStatus: () => true,
+    timeout: 60000,
+  });
 
-  const publicSrc = path.join(root, 'public');
-  for (const entry of fs.readdirSync(publicSrc, { withFileTypes: true })) {
-    if (entry.name === 'index.php' || entry.name === '.htaccess') continue;
-    const from = path.join(publicSrc, entry.name);
-    const to = path.join(stage, prefix, entry.name);
-    if (entry.isDirectory()) {
-      fs.cpSync(from, to, { recursive: true });
-    } else {
-      fs.copyFileSync(from, to);
-    }
+  const rows = Array.isArray(listData?.data) ? listData.data : Array.isArray(listData) ? listData : [];
+  const exists = rows.some((row) => {
+    const name = String(row?.subdomain || row?.name || row?.domain || '').toLowerCase();
+    return name === PREFIX || name === `${PREFIX}.${DOMAIN}`.toLowerCase();
+  });
+
+  if (exists) {
+    console.log(`subdomain ${PREFIX}.${DOMAIN} already configured`);
+    return;
   }
 
-  execSync(`cd "${stage}" && zip -rq "${zipPath}" .`, { stdio: 'inherit' });
-  const size = fs.statSync(zipPath).size;
-  console.log(`Release zip: ${Math.round(size / 1024)} KB`);
-  return { zipPath, stage };
-}
-
-async function uploadExtractBootstrap(creds, deploySecret) {
-  const remoteDir = `${prefix}/_deploy`;
-  const extractLocal = path.join(root, 'deploy', 'extract.php');
-  const secretTmp = path.join(os.tmpdir(), `pajpys-secret-${Date.now()}.txt`);
-  fs.writeFileSync(secretTmp, deploySecret);
-
-  await withRetries(() => uploadRemoteFile(extractLocal, `${remoteDir}/extract.php`, creds), {
-    label: 'extract.php upload',
-  });
-  await withRetries(() => uploadRemoteFile(secretTmp, `${remoteDir}/secret.txt`, creds), {
-    label: 'deploy secret upload',
-  });
-  fs.unlinkSync(secretTmp);
-}
-
-async function triggerExtract(deploySecret) {
-  const url = `https://${domain}/${prefix}/_deploy/extract.php`;
   const { data, status } = await axios.post(
-    url,
-    new URLSearchParams({ secret: deploySecret }),
+    listUrl,
     {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      validateStatus: () => true,
-      timeout: 300000,
-    }
+      subdomain: PREFIX,
+      directory: PREFIX,
+      is_using_public_directory: true,
+    },
+    { headers, validateStatus: () => true, timeout: 60000 }
   );
-  console.log(`extract status=${status}`, data);
-  if (status < 200 || status >= 300) {
-    throw new Error(`Extract failed: ${JSON.stringify(data)}`);
+
+  if (status >= 200 && status < 300) {
+    console.log(`created subdomain ${PREFIX}.${DOMAIN} → public_html/${PREFIX}/public`);
+    return;
   }
+
+  if (status === 409 || status === 422) {
+    console.log(`subdomain create returned ${status}; assuming it already exists`);
+    return;
+  }
+
+  throw new Error(`create subdomain ${status}: ${JSON.stringify(data)}`);
 }
 
-async function uploadEnv(creds, envB64) {
-  const envTmp = path.join(os.tmpdir(), `pajpys-env-${Date.now()}`);
-  fs.writeFileSync(envTmp, Buffer.from(envB64, 'base64'));
-  await withRetries(() => uploadRemoteFile(envTmp, 'pajpys_app/.env', creds), {
-    label: '.env upload',
-  });
-  fs.unlinkSync(envTmp);
+function readEnvB64() {
+  return process.env.APP_ENV_B64 || process.env.ENV_B64 || '';
 }
 
 async function main() {
-  const deploySecret = process.env.DEPLOY_SECRET;
-  const envB64 = process.env.ENV_B64;
+  buildApp();
+  await ensureSubdomain();
 
-  if (!deploySecret) {
-    console.error('DEPLOY_SECRET is required');
-    process.exit(1);
+  const creds = await getCreds();
+  const files = walkFiles(ROOT).sort();
+  console.log(`Deploying ${files.length} files to ${DOMAIN}/${PREFIX}/`);
+
+  const envB64 = readEnvB64();
+  if (envB64) {
+    const envPath = path.join(ROOT, '.env.deploy');
+    fs.writeFileSync(envPath, Buffer.from(envB64, 'base64'));
+    const remote = `${PREFIX}/.env`;
+    process.stdout.write(`upload ${remote} (from APP_ENV_B64) ... `);
+    await uploadFile(envPath, remote, creds);
+    fs.unlinkSync(envPath);
+    console.log('ok');
   }
-  if (!envB64) {
-    console.error('ENV_B64 is required (base64-encoded production .env)');
-    process.exit(1);
+
+  let n = 0;
+  for (const rel of files) {
+    const local = path.join(ROOT, rel);
+    const remote = `${PREFIX}/${rel}`;
+    process.stdout.write(`[${++n}/${files.length}] ${remote} ... `);
+    await uploadFile(local, remote, creds);
+    console.log('ok');
   }
 
-  const { zipPath, stage } = buildRelease();
-  const creds = await getUploadCredentials(token, username, domain);
-
-  console.log('Uploading extract bootstrap...');
-  await uploadExtractBootstrap(creds, deploySecret);
-
-  console.log('Uploading release zip...');
-  await withRetries(
-    () => uploadRemoteFile(zipPath, `${prefix}/_deploy/release.zip`, creds),
-    { label: 'release zip upload', attempts: 3, delayMs: 8000 }
+  await axios.delete(
+    `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/cache/clear`,
+    { headers, validateStatus: () => true }
   );
-
-  console.log('Extracting on server...');
-  await withRetries(() => triggerExtract(deploySecret), {
-    label: 'remote extract',
-    attempts: 2,
-    delayMs: 10000,
-  });
-
-  console.log('Uploading production .env...');
-  await uploadEnv(creds, envB64);
-
-  await clearWebsiteCache(token, username, domain);
-
-  fs.rmSync(stage, { recursive: true, force: true });
-  fs.unlinkSync(zipPath);
-
-  const live = await verifySiteLive();
-  if (!live) {
-    console.error('DEPLOY_VERIFY_FAIL: site not live after deploy');
-    process.exit(1);
-  }
-
-  console.log('DEPLOY_OK');
+  console.log('cache cleared');
+  console.log(`DEPLOY_OK ${PREFIX} ${LIVE_URL}`);
 }
 
 main().catch((e) => {
-  console.error('DEPLOY_FAIL', e.message || e);
+  console.error(e.message || e);
   process.exit(1);
 });
