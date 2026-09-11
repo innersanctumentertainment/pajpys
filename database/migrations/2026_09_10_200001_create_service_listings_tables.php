@@ -23,8 +23,10 @@ return new class extends Migration
             $table->unsignedInteger('completed_services_count')->default(0);
             $table->timestamps();
             $table->softDeletes();
+
             $table->index('status');
         });
+
         Schema::create('service_listings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -49,18 +51,22 @@ return new class extends Migration
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['user_id', 'status']);
             $table->index(['status', 'published_at']);
             $table->index(['service_type', 'status']);
             $table->index('category_id');
         });
+
         Schema::create('service_listing_skills', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_listing_id')->constrained()->cascadeOnDelete();
             $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
+
             $table->unique(['service_listing_id', 'skill_id']);
         });
+
         Schema::create('service_inquiries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_listing_id')->constrained()->cascadeOnDelete();
@@ -71,22 +77,27 @@ return new class extends Migration
             $table->text('provider_response')->nullable();
             $table->timestamp('responded_at')->nullable();
             $table->timestamps();
+
             $table->index(['provider_id', 'status']);
             $table->index(['client_id', 'status']);
         });
+
         Schema::table('marketplace_jobs', function (Blueprint $table) {
             $table->unsignedBigInteger('posting_fee_amount_minor')->nullable()->after('budget_amount_minor');
             $table->char('posting_fee_currency', 3)->nullable()->after('posting_fee_amount_minor');
             $table->timestamp('posting_fee_paid_at')->nullable()->after('posting_fee_currency');
-            $table->foreignId('posting_fee_payment_id')->nullable()->after('posting_fee_paid_at')->constrained('payments')->nullOnDelete();
+            $table->foreignId('posting_fee_payment_id')->nullable()->after('posting_fee_paid_at')
+                ->constrained('payments')->nullOnDelete();
         });
     }
+
     public function down(): void
     {
         Schema::table('marketplace_jobs', function (Blueprint $table) {
             $table->dropConstrainedForeignId('posting_fee_payment_id');
             $table->dropColumn(['posting_fee_amount_minor', 'posting_fee_currency', 'posting_fee_paid_at']);
         });
+
         Schema::dropIfExists('service_inquiries');
         Schema::dropIfExists('service_listing_skills');
         Schema::dropIfExists('service_listings');

@@ -8,7 +8,7 @@
     <title>@yield('title', 'Dashboard') — PAJPYS</title>
 
     <link rel="manifest" href="/manifest.json">
-    @fonts
+    @include('partials.fonts')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
