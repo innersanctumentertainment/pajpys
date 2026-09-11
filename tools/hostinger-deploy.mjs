@@ -200,22 +200,28 @@ async function ensureSubdomain() {
   });
 
   const rows = Array.isArray(listData?.data) ? listData.data : Array.isArray(listData) ? listData : [];
-  const exists = rows.some((row) => {
+  const existing = rows.find((row) => {
     const name = String(row?.subdomain || row?.name || row?.domain || '').toLowerCase();
     return name === PREFIX || name === `${PREFIX}.${DOMAIN}`.toLowerCase();
   });
 
-  if (exists) {
-    console.log(`subdomain ${PREFIX}.${DOMAIN} already configured`);
-    return;
+  const expectedRoot = `/public_html/${PREFIX}/public`;
+  if (existing) {
+    const root = String(existing.root_directory || '');
+    if (root.endsWith(expectedRoot)) {
+      console.log(`subdomain ${PREFIX}.${DOMAIN} already configured`);
+      return;
+    }
+    console.log(`subdomain ${PREFIX}.${DOMAIN} has wrong root (${root}); recreating`);
+    await axios.delete(`${listUrl}/${PREFIX}`, { headers, validateStatus: () => true, timeout: 60000 });
+    await new Promise((r) => setTimeout(r, 5000));
   }
 
   const { data, status } = await axios.post(
     listUrl,
     {
       subdomain: PREFIX,
-      directory: PREFIX,
-      is_using_public_directory: true,
+      directory: `${PREFIX}/public`,
     },
     { headers, validateStatus: () => true, timeout: 60000 }
   );
@@ -302,6 +308,35 @@ function resolveProductionEnvBytes() {
   return Buffer.from(buildFallbackEnvText(), 'utf8');
 }
 
+const RUNTIME_DIR_MARKERS = [
+  'bootstrap/cache/.gitkeep',
+  'storage/framework/views/.gitkeep',
+  'storage/framework/cache/data/.gitkeep',
+  'storage/framework/sessions/.gitkeep',
+  'storage/logs/.gitkeep',
+];
+
+async function ensureRuntimeDirs(creds) {
+  const marker = path.join(ROOT, '.runtime-marker');
+  fs.writeFileSync(marker, '');
+  for (const rel of RUNTIME_DIR_MARKERS) {
+    const remote = `${PREFIX}/${rel}`;
+    process.stdout.write(`ensure ${remote} ... `);
+    await uploadFile(marker, remote, creds);
+    console.log('ok');
+  }
+  fs.unlinkSync(marker);
+
+  const sqlite = path.join(ROOT, '.runtime-marker');
+  fs.writeFileSync(sqlite, '');
+  if (!fs.existsSync(path.join(ROOT, 'database/database.sqlite'))) {
+    process.stdout.write(`ensure ${PREFIX}/database/database.sqlite ... `);
+    await uploadFile(sqlite, `${PREFIX}/database/database.sqlite`, creds);
+    console.log('ok');
+  }
+  fs.unlinkSync(sqlite);
+}
+
 async function main() {
   buildApp();
   await ensureSubdomain();
@@ -326,6 +361,8 @@ async function main() {
     await uploadFile(local, remote, creds);
     console.log('ok');
   }
+
+  await ensureRuntimeDirs(creds);
 
   await axios.delete(
     `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/cache/clear`,
