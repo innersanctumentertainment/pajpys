@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
+
             $table->unique(['user_id', 'wallet_type', 'currency']);
             $table->index(['wallet_type', 'status']);
         });
