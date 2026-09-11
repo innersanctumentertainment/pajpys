@@ -17,7 +17,7 @@ function read_deploy_secret(): string
         return $direct;
     }
 
-    $envB64 = getenv('ENV_B64');
+    $envB64 = getenv('APP_ENV_B64') ?: getenv('ENV_B64');
     if (is_string($envB64) && $envB64 !== '') {
         $env = base64_decode($envB64, true);
         if ($env !== false && preg_match('/^DEPLOY_SECRET=(.+)$/m', $env, $m)) {
@@ -69,7 +69,7 @@ function post_migrate(string $url, string $secret): array
     exit(1);
 }
 
-$base = getenv('PAJPYS_DEPLOY_URL') ?: 'https://agapetech.org/pajpys';
+$base = getenv('PAJPYS_DEPLOY_URL') ?: 'https://pajpys.agapetech.org';
 $url = rtrim($base, '/') . '/deploy/migrate';
 $secret = read_deploy_secret();
 $result = post_migrate($url, $secret);
