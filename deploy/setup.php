@@ -40,12 +40,19 @@ foreach ([
     'storage/framework/views',
     'storage/logs',
     'bootstrap/cache',
+    'database',
 ] as $dir) {
     $path = $root . '/' . $dir;
     if (! is_dir($path)) {
         mkdir($path, 0775, true);
     }
     @chmod($path, 0775);
+}
+
+$sqlite = $root . '/database/database.sqlite';
+if (! is_file($sqlite)) {
+    touch($sqlite);
+    @chmod($sqlite, 0664);
 }
 
 try {
