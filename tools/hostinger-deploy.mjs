@@ -327,14 +327,31 @@ async function ensureRuntimeDirs(creds) {
   }
   fs.unlinkSync(marker);
 
-  const sqlite = path.join(ROOT, '.runtime-marker');
-  fs.writeFileSync(sqlite, '');
-  if (!fs.existsSync(path.join(ROOT, 'database/database.sqlite'))) {
-    process.stdout.write(`ensure ${PREFIX}/database/database.sqlite ... `);
-    await uploadFile(sqlite, `${PREFIX}/database/database.sqlite`, creds);
-    console.log('ok');
+  fs.writeFileSync(marker, '');
+  process.stdout.write(`ensure ${PREFIX}/database/.gitkeep ... `);
+  await uploadFile(marker, `${PREFIX}/database/.gitkeep`, creds);
+  console.log('ok');
+  fs.unlinkSync(marker);
+  // Never upload an empty database.sqlite — it would wipe production data.
+  // Migrations in runProductionMigrate() create/populate the DB when needed.
+}
+
+async function runProductionMigrate() {
+  const secret = process.env.DEPLOY_SECRET;
+  if (!secret) {
+    console.log('DEPLOY_SECRET not set; skipping migrate (run tools/run-migrate.php after deploy)');
+    return;
   }
-  fs.unlinkSync(sqlite);
+  console.log('Running production migrations ...');
+  const { status, data } = await axios.post(
+    `${LIVE_URL.replace(/\/$/, '')}/deploy/migrate`,
+    { secret },
+    { validateStatus: () => true, timeout: 300000 }
+  );
+  console.log(`migrate status=${status}`, typeof data === 'string' ? data : JSON.stringify(data));
+  if (status < 200 || status >= 300) {
+    throw new Error(`Migration failed with status ${status}`);
+  }
 }
 
 async function main() {
@@ -363,6 +380,7 @@ async function main() {
   }
 
   await ensureRuntimeDirs(creds);
+  await runProductionMigrate();
 
   await axios.delete(
     `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/cache/clear`,
