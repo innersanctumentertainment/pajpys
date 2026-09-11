@@ -14,7 +14,6 @@ return new class extends Migration
             $table->index('entry_hash');
         });
     }
-
     public function down(): void
     {
         Schema::table('audit_logs', function (Blueprint $table) {

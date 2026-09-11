@@ -17,11 +17,9 @@ return new class extends Migration
             $table->boolean('is_internal')->default(true);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['notable_type', 'notable_id']);
             $table->index('author_id');
         });
-
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
@@ -34,16 +32,10 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->timestamp('occurred_at');
             $table->timestamp('created_at')->useCurrent();
-
             $table->index(['auditable_type', 'auditable_id']);
             $table->index(['user_id', 'occurred_at']);
             $table->index('event');
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('audit_logs');
-        Schema::dropIfExists('staff_notes');
-    }
+    public function down(): void { Schema::dropIfExists('audit_logs'); Schema::dropIfExists('staff_notes'); }
 };

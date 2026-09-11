@@ -19,13 +19,8 @@ return new class extends Migration
             $table->string('visibility')->default('private');
             $table->json('allowed_user_ids')->nullable();
             $table->timestamps();
-
             $table->unique(['disk', 'path']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('stored_files');
-    }
+    public function down(): void { Schema::dropIfExists('stored_files'); }
 };

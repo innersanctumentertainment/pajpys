@@ -9,36 +9,8 @@ class PlatformSettingsSeeder extends Seeder
 {
     public function run(): void
     {
-        $settings = [
-            ['key' => 'default_currency', 'value' => 'TTD', 'type' => 'string', 'group' => 'general', 'description' => 'Default platform currency (always TTD for public display)', 'is_public' => true],
-            ['key' => 'allowed_currencies', 'value' => '["TTD","USD","GBP"]', 'type' => 'json', 'group' => 'general', 'description' => 'Currencies available in admin/backend configuration. TTD is always the default.', 'is_public' => false],
-            ['key' => 'minimum_job_price', 'value' => '30', 'type' => 'decimal', 'group' => 'pricing', 'description' => 'Minimum job price in TTD', 'is_public' => true],
-            ['key' => 'platform_fee_percentage', 'value' => '10', 'type' => 'decimal', 'group' => 'pricing', 'description' => 'Platform service fee percentage', 'is_public' => false],
-            ['key' => 'withdrawal_fee', 'value' => '15', 'type' => 'decimal', 'group' => 'fees', 'description' => 'Platform withdrawal fee percentage for all users', 'is_public' => true],
-            ['key' => 'va_withdrawal_fee', 'value' => '15', 'type' => 'decimal', 'group' => 'fees', 'description' => 'VA withdrawal fee percentage (legacy alias)', 'is_public' => true],
-            ['key' => 'client_wallet_withdrawal_fee', 'value' => '15', 'type' => 'decimal', 'group' => 'fees', 'description' => 'Client wallet withdrawal fee percentage (legacy alias)', 'is_public' => true],
-            ['key' => 'job_posting_fee', 'value' => '20', 'type' => 'decimal', 'group' => 'pricing', 'description' => 'Flat fee to post a job on the platform', 'is_public' => true],
-            ['key' => 'job_posting_fee_currency', 'value' => 'TTD', 'type' => 'string', 'group' => 'pricing', 'description' => 'Currency for job posting fee (default TTD; USD optional via admin)', 'is_public' => true],
-            ['key' => 'va_withdrawal_minimum', 'value' => '150', 'type' => 'decimal', 'group' => 'fees', 'description' => 'Minimum VA withdrawal amount in TTD', 'is_public' => true],
-            ['key' => 'va_cancellation_fee', 'value' => '20', 'type' => 'decimal', 'group' => 'fees', 'description' => 'VA cancellation fee in TTD', 'is_public' => true],
-            ['key' => 'client_cancellation_fee', 'value' => '25', 'type' => 'decimal', 'group' => 'fees', 'description' => 'Client cancellation fee in TTD', 'is_public' => true],
-            ['key' => 'escrow_release_days', 'value' => '3', 'type' => 'integer', 'group' => 'payments', 'description' => 'Days before escrow auto-releases to VA', 'is_public' => false],
-            ['key' => 'max_failed_login_attempts', 'value' => '5', 'type' => 'integer', 'group' => 'security', 'description' => 'Max failed login attempts before lockout', 'is_public' => false],
-            ['key' => 'account_lockout_minutes', 'value' => '30', 'type' => 'integer', 'group' => 'security', 'description' => 'Account lockout duration in minutes', 'is_public' => false],
-            ['key' => 'job_invitation_expiry_hours', 'value' => '72', 'type' => 'integer', 'group' => 'jobs', 'description' => 'Hours before job invitations expire', 'is_public' => false],
-            ['key' => 'offer_expiry_hours', 'value' => '48', 'type' => 'integer', 'group' => 'jobs', 'description' => 'Hours before offers expire', 'is_public' => false],
-            ['key' => 'support_email', 'value' => 'support@pajpys.com', 'type' => 'string', 'group' => 'general', 'description' => 'Platform support email', 'is_public' => true],
-            ['key' => 'platform_name', 'value' => 'PAJPYS', 'type' => 'string', 'group' => 'general', 'description' => 'Platform brand name', 'is_public' => true],
-            ['key' => 'platform_domain', 'value' => 'pajpys.com', 'type' => 'string', 'group' => 'general', 'description' => 'Platform domain', 'is_public' => true],
-        ];
-
+        $settings = [['key'=>'default_currency','value'=>'TTD','type'=>'string','group'=>'general','description'=>'Default platform currency (always TTD for public display)','is_public'=>true],['key'=>'allowed_currencies','value'=>'["TTD","USD","GBP"]','type'=>'json','group'=>'general','description'=>'Currencies available in admin/backend configuration. TTD is always the default.','is_public'=>false],['key'=>'minimum_job_price','value'=>'30','type'=>'decimal','group'=>'pricing','description'=>'Minimum job price in TTD','is_public'=>true],['key'=>'platform_fee_percentage','value'=>'10','type'=>'decimal','group'=>'pricing','description'=>'Platform service fee percentage','is_public'=>false],['key'=>'withdrawal_fee','value'=>'15','type'=>'decimal','group'=>'fees','description'=>'Platform withdrawal fee percentage for all users','is_public'=>true],['key'=>'va_withdrawal_fee','value'=>'15','type'=>'decimal','group'=>'fees','description'=>'VA withdrawal fee percentage (legacy alias)','is_public'=>true],['key'=>'client_wallet_withdrawal_fee','value'=>'15','type'=>'decimal','group'=>'fees','description'=>'Client wallet withdrawal fee percentage (legacy alias)','is_public'=>true],['key'=>'job_posting_fee','value'=>'20','type'=>'decimal','group'=>'pricing','description'=>'Flat fee to post a job on the platform','is_public'=>true],['key'=>'job_posting_fee_currency','value'=>'TTD','type'=>'string','group'=>'pricing','description'=>'Currency for job posting fee (default TTD; USD optional via admin)','is_public'=>true],['key'=>'va_withdrawal_minimum','value'=>'150','type'=>'decimal','group'=>'fees','description'=>'Minimum VA withdrawal amount in TTD','is_public'=>true],['key'=>'va_cancellation_fee','value'=>'20','type'=>'decimal','group'=>'fees','description'=>'VA cancellation fee in TTD','is_public'=>true],['key'=>'client_cancellation_fee','value'=>'25','type'=>'decimal','group'=>'fees','description'=>'Client cancellation fee in TTD','is_public'=>true],['key'=>'escrow_release_days','value'=>'3','type'=>'integer','group'=>'payments','description'=>'Days before escrow auto-releases to VA','is_public'=>false],['key'=>'max_failed_login_attempts','value'=>'5','type'=>'integer','group'=>'security','description'=>'Max failed login attempts before lockout','is_public'=>false],['key'=>'account_lockout_minutes','value'=>'30','type'=>'integer','group'=>'security','description'=>'Account lockout duration in minutes','is_public'=>false],['key'=>'job_invitation_expiry_hours','value'=>'72','type'=>'integer','group'=>'jobs','description'=>'Hours before job invitations expire','is_public'=>false],['key'=>'offer_expiry_hours','value'=>'48','type'=>'integer','group'=>'jobs','description'=>'Hours before offers expire','is_public'=>false],['key'=>'support_email','value'=>'support@pajpys.com','type'=>'string','group'=>'general','description'=>'Platform support email','is_public'=>true],['key'=>'platform_name','value'=>'PAJPYS','type'=>'string','group'=>'general','description'=>'Platform brand name','is_public'=>true],['key'=>'platform_domain','value'=>'pajpys.com','type'=>'string','group'=>'general','description'=>'Platform domain','is_public'=>true]];
         $now = now();
-
-        foreach ($settings as $setting) {
-            DB::table('platform_settings')->updateOrInsert(
-                ['key' => $setting['key']],
-                array_merge($setting, ['created_at' => $now, 'updated_at' => $now])
-            );
-        }
+        foreach ($settings as $setting) { DB::table('platform_settings')->updateOrInsert(['key'=>$setting['key']], array_merge($setting, ['created_at'=>$now,'updated_at'=>$now])); }
     }
 }

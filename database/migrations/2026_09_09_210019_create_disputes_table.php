@@ -25,11 +25,9 @@ return new class extends Migration
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['marketplace_job_id', 'status']);
             $table->index(['raised_by', 'status']);
         });
-
         Schema::create('dispute_evidence', function (Blueprint $table) {
             $table->id();
             $table->foreignId('dispute_id')->constrained()->cascadeOnDelete();
@@ -41,14 +39,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index('dispute_id');
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('dispute_evidence');
-        Schema::dropIfExists('disputes');
-    }
+    public function down(): void { Schema::dropIfExists('dispute_evidence'); Schema::dropIfExists('disputes'); }
 };

@@ -81,7 +81,6 @@ return new class extends Migration
             $table->foreignId('posting_fee_payment_id')->nullable()->after('posting_fee_paid_at')->constrained('payments')->nullOnDelete();
         });
     }
-
     public function down(): void
     {
         Schema::table('marketplace_jobs', function (Blueprint $table) {

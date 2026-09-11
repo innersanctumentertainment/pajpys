@@ -19,10 +19,8 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['is_active', 'sort_order']);
         });
-
         Schema::create('faqs', function (Blueprint $table) {
             $table->id();
             $table->string('question');
@@ -32,10 +30,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['is_active', 'sort_order']);
         });
-
         Schema::create('testimonials', function (Blueprint $table) {
             $table->id();
             $table->string('author_name');
@@ -48,10 +44,8 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['is_featured', 'sort_order']);
         });
-
         Schema::create('featured_vas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('va_profile_id')->constrained('va_profiles')->cascadeOnDelete();
@@ -60,28 +54,17 @@ return new class extends Migration
             $table->timestamp('featured_until')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-
             $table->unique('va_profile_id');
             $table->index(['is_active', 'sort_order']);
         });
-
         Schema::create('favorite_vas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('va_id')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
-
             $table->unique(['client_id', 'va_id']);
             $table->index('va_id');
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('favorite_vas');
-        Schema::dropIfExists('featured_vas');
-        Schema::dropIfExists('testimonials');
-        Schema::dropIfExists('faqs');
-        Schema::dropIfExists('homepage_content');
-    }
+    public function down(): void { Schema::dropIfExists('favorite_vas'); Schema::dropIfExists('featured_vas'); Schema::dropIfExists('testimonials'); Schema::dropIfExists('faqs'); Schema::dropIfExists('homepage_content'); }
 };

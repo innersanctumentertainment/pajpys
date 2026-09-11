@@ -22,10 +22,8 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['payment_id', 'status']);
         });
-
         Schema::create('cancellation_records', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -39,10 +37,8 @@ return new class extends Migration
             $table->char('currency', 3)->default('TTD');
             $table->timestamp('cancelled_at');
             $table->timestamps();
-
             $table->index(['marketplace_job_id', 'cancelled_at']);
         });
-
         Schema::create('tips', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->nullable()->constrained('marketplace_jobs')->nullOnDelete();
@@ -54,15 +50,8 @@ return new class extends Migration
             $table->char('currency', 3)->default('TTD');
             $table->text('message')->nullable();
             $table->timestamps();
-
             $table->index(['to_user_id', 'created_at']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('tips');
-        Schema::dropIfExists('cancellation_records');
-        Schema::dropIfExists('refunds');
-    }
+    public function down(): void { Schema::dropIfExists('tips'); Schema::dropIfExists('cancellation_records'); Schema::dropIfExists('refunds'); }
 };

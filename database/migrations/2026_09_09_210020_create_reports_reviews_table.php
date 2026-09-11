@@ -19,11 +19,9 @@ return new class extends Migration
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
-
             $table->index(['reportable_type', 'reportable_id']);
             $table->index(['status', 'created_at']);
         });
-
         Schema::create('reviews', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -34,15 +32,9 @@ return new class extends Migration
             $table->boolean('is_public')->default(true);
             $table->timestamps();
             $table->softDeletes();
-
             $table->unique(['marketplace_job_id', 'reviewer_id']);
             $table->index(['reviewee_id', 'rating']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('reviews');
-        Schema::dropIfExists('reports');
-    }
+    public function down(): void { Schema::dropIfExists('reviews'); Schema::dropIfExists('reports'); }
 };
