@@ -43,7 +43,7 @@ return new class extends Migration
             $table->text('rejection_reason')->nullable();
             $table->foreignId('processed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('processed_at')->nullable();
-            $table->timations();
+            $table->timestamps();
             $table->softDeletes();
 
             $table->index(['user_id', 'status']);
