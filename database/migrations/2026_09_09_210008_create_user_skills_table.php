@@ -16,14 +16,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('years_experience')->nullable();
             $table->boolean('is_primary')->default(false);
             $table->timestamps();
-
             $table->unique(['user_id', 'skill_id']);
             $table->index(['skill_id', 'proficiency_level']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('user_skills');
-    }
+    public function down(): void { Schema::dropIfExists('user_skills'); }
 };
