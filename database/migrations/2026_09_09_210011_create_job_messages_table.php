@@ -18,9 +18,11 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['marketplace_job_id', 'created_at']);
             $table->index(['recipient_id', 'read_at']);
         });
+
         Schema::create('message_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_message_id')->constrained()->cascadeOnDelete();
@@ -30,8 +32,10 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index('job_message_id');
         });
+
         Schema::create('job_activity', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -41,10 +45,12 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamp('occurred_at');
             $table->timestamps();
+
             $table->index(['marketplace_job_id', 'occurred_at']);
             $table->index('event_type');
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('job_activity');

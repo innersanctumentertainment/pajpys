@@ -15,9 +15,14 @@ return new class extends Migration
             $table->decimal('rate', 19, 8);
             $table->timestamp('effective_at');
             $table->timestamps();
+
             $table->unique(['base_currency', 'quote_currency', 'effective_at']);
             $table->index(['base_currency', 'quote_currency']);
         });
     }
-    public function down(): void { Schema::dropIfExists('currency_rates'); }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('currency_rates');
+    }
 };

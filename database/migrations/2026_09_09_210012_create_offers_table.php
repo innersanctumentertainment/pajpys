@@ -24,9 +24,11 @@ return new class extends Migration
             $table->timestamp('declined_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['marketplace_job_id', 'status']);
             $table->index(['va_id', 'status']);
         });
+
         Schema::create('offer_changes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('offer_id')->constrained()->cascadeOnDelete();
@@ -35,8 +37,10 @@ return new class extends Migration
             $table->text('old_value')->nullable();
             $table->text('new_value')->nullable();
             $table->timestamps();
+
             $table->index(['offer_id', 'created_at']);
         });
+
         Schema::create('offer_negotiations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('offer_id')->constrained()->cascadeOnDelete();
@@ -47,9 +51,11 @@ return new class extends Migration
             $table->text('message')->nullable();
             $table->string('status', 30)->default('pending');
             $table->timestamps();
+
             $table->index(['offer_id', 'status']);
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('offer_negotiations');

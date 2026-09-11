@@ -17,8 +17,10 @@ return new class extends Migration
             $table->char('currency', 3)->default('TTD');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+
             $table->index(['account_type', 'is_active']);
         });
+
         Schema::create('ledger_entries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ledger_account_id')->constrained()->restrictOnDelete();
@@ -32,10 +34,16 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamp('recorded_at');
             $table->timestamp('created_at')->useCurrent();
+
             $table->index(['ledger_account_id', 'recorded_at']);
             $table->index(['reference_type', 'reference_id']);
             $table->index('entry_type');
         });
     }
-    public function down(): void { Schema::dropIfExists('ledger_entries'); Schema::dropIfExists('ledger_accounts'); }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('ledger_entries');
+        Schema::dropIfExists('ledger_accounts');
+    }
 };
