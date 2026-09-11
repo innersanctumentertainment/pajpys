@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a1628">
+    <title>Offline — PAJPYS</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: linear-gradient(180deg, #0a1628 0%, #1a3a5c 100%);
+            color: #faf8f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+        }
+        .card {
+            text-align: center;
+            max-width: 28rem;
+            padding: 3rem 2rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 1rem;
+            backdrop-filter: blur(16px);
+        }
+        h1 {
+            font-family: 'Outfit', system-ui, sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        h1 span { color: #00d4aa; }
+        p { color: rgba(250,248,245,0.65); line-height: 1.6; margin-bottom: 2rem; font-size: 0.9375rem; }
+        a {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #00d4aa, #00b894);
+            color: #0a1628;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 0.75rem;
+            font-size: 0.9375rem;
+        }
+        a:focus-visible { outline: 3px solid rgba(0,212,170,0.45); outline-offset: 2px; }
+        .icon { font-size: 3rem; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon" aria-hidden="true">🌴</div>
+        <h1>Assist<span>Carib</span></h1>
+        <p>You're offline. Check your connection and try again — your cached pages may still be available.</p>
+        <a href="/" onclick="window.location.reload(); return false;">Try again</a>
+    </div>
+</body>
+</html>
