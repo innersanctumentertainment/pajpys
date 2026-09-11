@@ -22,16 +22,20 @@ return new class extends Migration
             $table->boolean('is_public')->default(false);
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['user_id', 'is_public']);
         });
+
         Schema::create('job_template_skills', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_template_id')->constrained()->cascadeOnDelete();
             $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_required')->default(true);
             $table->timestamps();
+
             $table->unique(['job_template_id', 'skill_id']);
         });
+
         Schema::create('availability_schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -41,8 +45,10 @@ return new class extends Migration
             $table->string('timezone', 64)->default('America/Port_of_Spain');
             $table->boolean('is_available')->default(true);
             $table->timestamps();
+
             $table->index(['user_id', 'day_of_week']);
         });
+
         Schema::create('portfolio_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -55,8 +61,16 @@ return new class extends Migration
             $table->boolean('is_public')->default(true);
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['user_id', 'is_public', 'sort_order']);
         });
     }
-    public function down(): void { Schema::dropIfExists('portfolio_items'); Schema::dropIfExists('availability_schedules'); Schema::dropIfExists('job_template_skills'); Schema::dropIfExists('job_templates'); }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('portfolio_items');
+        Schema::dropIfExists('availability_schedules');
+        Schema::dropIfExists('job_template_skills');
+        Schema::dropIfExists('job_templates');
+    }
 };

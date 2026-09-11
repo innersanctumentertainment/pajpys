@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Named marketplace_jobs to avoid conflict with Laravel queue jobs table.
         Schema::create('marketplace_jobs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('users')->cascadeOnDelete();
