@@ -1,0 +1,29 @@
+{
+  "_dm-sans-variable-normal-Xz1IZZA0.woff2": {
+    "file": "assets/dm-sans-variable-normal-Xz1IZZA0.woff2",
+    "src": "_dm-sans-variable-normal-Xz1IZZA0.woff2"
+  },
+  "_fonts-DN56d2Ru.css": {
+    "file": "assets/fonts-DN56d2Ru.css",
+    "src": "_fonts-DN56d2Ru.css"
+  },
+  "_outfit-variable-normal-Bc-8i84L.woff2": {
+    "file": "assets/outfit-variable-normal-Bc-8i84L.woff2",
+    "src": "_outfit-variable-normal-Bc-8i84L.woff2"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-Bbi5eFIS.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-CjVAWsSM.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}
