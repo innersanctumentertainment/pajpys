@@ -6,27 +6,10 @@
     <title>@yield('title', 'Authentication') — {{ config('app.name') }}</title>
 </head>
 <body>
-    <header>
-        <nav aria-label="Authentication">
-            <a href="{{ url('/') }}">{{ config('app.name') }}</a>
-        </nav>
-    </header>
-
+    <header><nav aria-label="Authentication"><a href="{{ url('/') }}">{{ config('app.name') }}</a></nav></header>
     <main>
-        @if (session('status'))
-            <p role="status">{{ session('status') }}</p>
-        @endif
-
-        @if ($errors->any())
-            <div role="alert">
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
+        @if (session('status'))<p role="status">{{ session('status') }}</p>@endif
+        @if ($errors->any())<div role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         @yield('content')
     </main>
 </body>
