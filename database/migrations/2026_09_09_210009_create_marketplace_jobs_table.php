@@ -30,18 +30,22 @@ return new class extends Migration
             $table->timestamp('closed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['client_id', 'status']);
             $table->index(['status', 'published_at']);
             $table->index('category_id');
         });
+
         Schema::create('job_skills', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
             $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_required')->default(true);
             $table->timestamps();
+
             $table->unique(['marketplace_job_id', 'skill_id']);
         });
+
         Schema::create('job_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -52,8 +56,10 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index('marketplace_job_id');
         });
+
         Schema::create('job_candidates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -65,9 +71,11 @@ return new class extends Migration
             $table->char('currency', 3)->default('TTD');
             $table->timestamps();
             $table->softDeletes();
+
             $table->unique(['marketplace_job_id', 'va_id']);
             $table->index(['va_id', 'status']);
         });
+
         Schema::create('job_invitations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -79,9 +87,11 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->unique(['marketplace_job_id', 'va_id']);
             $table->index(['va_id', 'status']);
         });
+
         Schema::create('job_assignments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -95,10 +105,12 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['marketplace_job_id', 'status']);
             $table->index(['va_id', 'status']);
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('job_assignments');

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->boolean('is_public')->default(false);
             $table->timestamps();
+
             $table->index('group');
         });
     }

@@ -24,8 +24,10 @@ return new class extends Migration
             $table->timestamp('effective_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['marketplace_job_id', 'status']);
         });
+
         Schema::create('job_agreement_confirmations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_agreement_id')->constrained()->cascadeOnDelete();
@@ -35,8 +37,10 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->timestamp('confirmed_at');
             $table->timestamps();
+
             $table->unique(['job_agreement_id', 'user_id']);
         });
+
         Schema::create('job_deliverables', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -49,8 +53,10 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['marketplace_job_id', 'status']);
         });
+
         Schema::create('job_completion_evidence', function (Blueprint $table) {
             $table->id();
             $table->foreignId('marketplace_job_id')->constrained('marketplace_jobs')->cascadeOnDelete();
@@ -63,9 +69,11 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index('marketplace_job_id');
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('job_completion_evidence');

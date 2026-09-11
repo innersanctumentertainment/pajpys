@@ -19,8 +19,10 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['user_id', 'type', 'status']);
         });
+
         Schema::create('verification_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('verification_record_id')->constrained()->cascadeOnDelete();
@@ -32,9 +34,11 @@ return new class extends Migration
             $table->string('status', 30)->default('pending');
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['verification_record_id', 'document_type']);
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('verification_documents');

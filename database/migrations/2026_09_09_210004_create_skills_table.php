@@ -18,9 +18,11 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();
+
             $table->index(['category_id', 'is_active']);
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('skills');
