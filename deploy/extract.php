@@ -7,10 +7,21 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'POST required']);
+// A full Laravel release is ~10k files; the default shared-hosting time limit
+// is not enough to finish extracting and leaves a half-written tree behind.
+@set_time_limit(0);
+@ini_set('memory_limit', '512M');
+ignore_user_abort(true);
+
+function fail(int $code, string $error, array $extra = []): never
+{
+    http_response_code($code);
+    echo json_encode(['error' => $error] + $extra);
     exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    fail(405, 'POST required');
 }
 
 $secret = (string) (getenv('PAJPYS_DEPLOY_SECRET') ?: '');
@@ -22,42 +33,48 @@ if ($secret === '') {
 }
 
 $provided = (string) ($_POST['secret'] ?? $_GET['secret'] ?? '');
-if ($secret === '' || !hash_equals($secret, $provided)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Forbidden']);
-    exit;
+if ($secret === '' || ! hash_equals($secret, $provided)) {
+    fail(403, 'Forbidden');
 }
 
 $publicHtml = dirname(__DIR__, 2);
 $zipPath = __DIR__ . '/release.zip';
 
-if (!is_file($zipPath)) {
-    http_response_code(404);
-    echo json_encode(['error' => 'release.zip not found']);
-    exit;
+if (! is_file($zipPath)) {
+    fail(404, 'release.zip not found');
 }
 
-if (!class_exists(ZipArchive::class)) {
-    http_response_code(500);
-    echo json_encode(['error' => 'ZipArchive unavailable']);
-    exit;
+if (! class_exists(ZipArchive::class)) {
+    fail(500, 'ZipArchive unavailable', ['php' => PHP_VERSION]);
 }
 
 $zip = new ZipArchive();
-if ($zip->open($zipPath) !== true) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Cannot open release.zip']);
-    exit;
+$opened = $zip->open($zipPath);
+if ($opened !== true) {
+    fail(500, 'Cannot open release.zip', ['zip_code' => $opened]);
 }
 
-if (!$zip->extractTo($publicHtml)) {
+$count = $zip->numFiles;
+
+if (! $zip->extractTo($publicHtml)) {
     $zip->close();
-    http_response_code(500);
-    echo json_encode(['error' => 'Extract failed']);
-    exit;
+    fail(500, 'Extract failed', ['files' => $count, 'target' => $publicHtml]);
 }
 
 $zip->close();
 @unlink($zipPath);
 
-echo json_encode(['status' => 'ok', 'extracted_to' => $publicHtml]);
+// Laravel writes caches, compiled views and logs at runtime.
+foreach (['pajpys_app/storage', 'pajpys_app/bootstrap/cache'] as $writable) {
+    $dir = $publicHtml . '/' . $writable;
+    if (is_dir($dir)) {
+        @chmod($dir, 0775);
+    }
+}
+
+echo json_encode([
+    'status' => 'ok',
+    'files' => $count,
+    'php' => PHP_VERSION,
+    'extracted_to' => $publicHtml,
+]);
