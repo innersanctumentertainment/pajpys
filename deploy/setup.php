@@ -55,6 +55,11 @@ if (! is_file($sqlite)) {
     @chmod($sqlite, 0664);
 }
 
+// A previous deploy may have cached MySQL settings here; Laravel prefers them over .env.
+foreach (glob($root . '/bootstrap/cache/*.php') ?: [] as $cached) {
+    @unlink($cached);
+}
+
 try {
     require $root . '/vendor/autoload.php';
     $app = require $root . '/bootstrap/app.php';
