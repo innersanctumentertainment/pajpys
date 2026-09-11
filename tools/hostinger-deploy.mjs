@@ -12,6 +12,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
@@ -141,7 +142,45 @@ function uploadFile(localPath, remotePath, creds) {
   });
 }
 
+function phpVersion() {
+  try {
+    return execSync('php -r "echo PHP_MAJOR_VERSION.\\".\\".PHP_MINOR_VERSION;"', { encoding: 'utf8' }).trim();
+  } catch {
+    return '0.0';
+  }
+}
+
+function hasComposer() {
+  try {
+    execSync('composer --version', { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensurePhpComposer() {
+  if (hasComposer() && parseFloat(phpVersion()) >= 8.3) return;
+  console.log('Installing PHP 8.3 and Composer on the runner...');
+  execSync('sudo add-apt-repository -y ppa:ondrej/php', { stdio: 'inherit' });
+  execSync('sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq', { stdio: 'inherit' });
+  execSync(
+    'sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq php8.3-cli php8.3-xml php8.3-mbstring php8.3-curl php8.3-zip php8.3-sqlite3 php8.3-mysql unzip curl git zip software-properties-common',
+    { stdio: 'inherit' }
+  );
+  execSync('sudo update-alternatives --set php /usr/bin/php8.3', { stdio: 'inherit' });
+  if (!hasComposer()) {
+    execSync('curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer', {
+      stdio: 'inherit',
+    });
+  }
+  if (parseFloat(phpVersion()) < 8.3 || !hasComposer()) {
+    throw new Error(`PHP/Composer setup failed (php ${phpVersion()})`);
+  }
+}
+
 function buildApp() {
+  ensurePhpComposer();
   console.log('Installing PHP dependencies (production)...');
   execSync('composer install --no-dev --optimize-autoloader --no-interaction', {
     cwd: ROOT,
@@ -194,8 +233,73 @@ async function ensureSubdomain() {
   throw new Error(`create subdomain ${status}: ${JSON.stringify(data)}`);
 }
 
-function readEnvB64() {
-  return process.env.APP_ENV_B64 || process.env.ENV_B64 || '';
+function normalizeProductionEnv(raw) {
+  let env = raw.toString('utf8');
+  const replacements = [
+    ['APP_URL=https://agapetech.org/pajpys/', 'APP_URL=https://pajpys.agapetech.org/'],
+    ['APP_URL=https://agapetech.org/pajpys', 'APP_URL=https://pajpys.agapetech.org'],
+    ['SESSION_PATH=/pajpys', 'SESSION_PATH=/'],
+    ['https://agapetech.org/pajpys/', 'https://pajpys.agapetech.org/'],
+    ['DB_CONNECTION=mysql', 'DB_CONNECTION=sqlite'],
+  ];
+  for (const [from, to] of replacements) {
+    env = env.split(from).join(to);
+  }
+  env = env.replace(/^DB_HOST=.*$/gm, '# DB_HOST=');
+  env = env.replace(/^DB_PORT=.*$/gm, '# DB_PORT=');
+  env = env.replace(/^DB_DATABASE=.*$/gm, '# DB_DATABASE=');
+  env = env.replace(/^DB_USERNAME=.*$/gm, '# DB_USERNAME=');
+  env = env.replace(/^DB_PASSWORD=.*$/gm, '# DB_PASSWORD=');
+  return env;
+}
+
+function buildFallbackEnvText() {
+  const deploySecret = process.env.DEPLOY_SECRET || crypto.randomBytes(24).toString('hex');
+  const appKey = process.env.PAJPYS_APP_KEY || `base64:${crypto.randomBytes(32).toString('base64')}`;
+  process.env.DEPLOY_SECRET = deploySecret;
+  return normalizeProductionEnv(
+    Buffer.from(
+      [
+        'APP_NAME=PAJPYS',
+        'APP_ENV=production',
+        `APP_KEY=${appKey}`,
+        'APP_DEBUG=false',
+        `APP_URL=https://${PREFIX}.${DOMAIN}`,
+        `DEPLOY_SECRET=${deploySecret}`,
+        'LOG_CHANNEL=stack',
+        'LOG_LEVEL=error',
+        'DB_CONNECTION=sqlite',
+        'DB_DATABASE=database/database.sqlite',
+        'SESSION_DRIVER=database',
+        'SESSION_LIFETIME=120',
+        'SESSION_ENCRYPT=true',
+        'SESSION_PATH=/',
+        `SESSION_DOMAIN=.${DOMAIN}`,
+        'CACHE_STORE=database',
+        'QUEUE_CONNECTION=database',
+        'MAIL_MAILER=log',
+        'MAIL_FROM_ADDRESS=hello@agapetech.org',
+        'MAIL_FROM_NAME=PAJPYS',
+        'WIPAY_ENVIRONMENT=sandbox',
+        'WIPAY_DEFAULT_CURRENCY=TTD',
+        'SEEDER_ADMIN_PASSWORD=change-me-after-first-login',
+        '',
+      ].join('\n'),
+      'utf8'
+    )
+  );
+}
+
+function resolveProductionEnvBytes() {
+  const b64 = process.env.APP_ENV_B64 || process.env.ENV_B64 || '';
+  if (b64) {
+    const env = normalizeProductionEnv(Buffer.from(b64, 'base64'));
+    const match = env.match(/^DEPLOY_SECRET=(.+)$/m);
+    if (match) process.env.DEPLOY_SECRET = match[1].trim().replace(/^["']|["']$/g, '');
+    return Buffer.from(env, 'utf8');
+  }
+  console.log('No APP_ENV_B64/ENV_B64; using generated production .env');
+  return Buffer.from(buildFallbackEnvText(), 'utf8');
 }
 
 async function main() {
@@ -206,16 +310,13 @@ async function main() {
   const files = walkFiles(ROOT).sort();
   console.log(`Deploying ${files.length} files to ${DOMAIN}/${PREFIX}/`);
 
-  const envB64 = readEnvB64();
-  if (envB64) {
-    const envPath = path.join(ROOT, '.env.deploy');
-    fs.writeFileSync(envPath, Buffer.from(envB64, 'base64'));
-    const remote = `${PREFIX}/.env`;
-    process.stdout.write(`upload ${remote} (from APP_ENV_B64) ... `);
-    await uploadFile(envPath, remote, creds);
-    fs.unlinkSync(envPath);
-    console.log('ok');
-  }
+  const envPath = path.join(ROOT, '.env.deploy');
+  fs.writeFileSync(envPath, resolveProductionEnvBytes());
+  const remote = `${PREFIX}/.env`;
+  process.stdout.write(`upload ${remote} ... `);
+  await uploadFile(envPath, remote, creds);
+  fs.unlinkSync(envPath);
+  console.log('ok');
 
   let n = 0;
   for (const rel of files) {
