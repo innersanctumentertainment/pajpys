@@ -16,9 +16,11 @@ return new class extends Migration
             $table->text('data');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
             $table->index(['notifiable_type', 'notifiable_id']);
             $table->index('read_at');
         });
+
         Schema::create('notification_preferences', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -26,8 +28,14 @@ return new class extends Migration
             $table->string('notification_type', 100);
             $table->boolean('is_enabled')->default(true);
             $table->timestamps();
+
             $table->unique(['user_id', 'channel', 'notification_type']);
         });
     }
-    public function down(): void { Schema::dropIfExists('notification_preferences'); Schema::dropIfExists('notifications'); }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('notification_preferences');
+        Schema::dropIfExists('notifications');
+    }
 };
