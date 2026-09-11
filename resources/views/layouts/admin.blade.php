@@ -8,7 +8,7 @@
     <title>@yield('title', 'Admin') — PAJPYS Command Center</title>
 
     <link rel="manifest" href="/manifest.json">
-    @fonts
+    @include('partials.fonts')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
