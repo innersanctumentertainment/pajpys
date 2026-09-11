@@ -31,13 +31,11 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['status', 'is_featured']);
             $table->index('availability_status');
             $table->index('average_rating');
         });
     }
-
     public function down(): void
     {
         Schema::dropIfExists('va_profiles');

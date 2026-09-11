@@ -27,11 +27,9 @@ return new class extends Migration
             $table->string('status', 30)->default('active');
             $table->timestamps();
             $table->softDeletes();
-
             $table->index('status');
         });
     }
-
     public function down(): void
     {
         Schema::dropIfExists('client_profiles');

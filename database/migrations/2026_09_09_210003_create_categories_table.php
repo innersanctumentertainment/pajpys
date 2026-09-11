@@ -18,21 +18,17 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
-
             $table->index(['is_active', 'sort_order']);
         });
-
         Schema::create('category_settings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
             $table->string('key');
             $table->text('value')->nullable();
             $table->timestamps();
-
             $table->unique(['category_id', 'key']);
         });
     }
-
     public function down(): void
     {
         Schema::dropIfExists('category_settings');
