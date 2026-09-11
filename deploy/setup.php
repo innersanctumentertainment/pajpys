@@ -54,7 +54,9 @@ try {
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
 
-    Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    // A failed earlier run can leave tables behind without recording the
+    // migration. Fresh is safe here: this database is dedicated to PAJPYS.
+    Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
     $migrate = trim(Illuminate\Support\Facades\Artisan::output());
 
     Illuminate\Support\Facades\Artisan::call('config:cache');

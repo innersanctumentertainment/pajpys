@@ -35,7 +35,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['verification_record_id', 'document_type']);
+            $table->index(['verification_record_id', 'document_type'], 'verif_docs_record_type_idx');
         });
     }
 

@@ -29,7 +29,7 @@ return new class extends Migration
             $table->boolean('is_enabled')->default(true);
             $table->timestamps();
 
-            $table->unique(['user_id', 'channel', 'notification_type']);
+            $table->unique(['user_id', 'channel', 'notification_type'], 'notif_prefs_user_chan_type_uniq');
         });
     }
 
