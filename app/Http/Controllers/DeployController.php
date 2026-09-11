@@ -19,8 +19,6 @@ class DeployController extends Controller
         $migrateOutput = Artisan::output();
 
         Artisan::call('config:cache');
-        Artisan::call('route:cache');
-        Artisan::call('view:cache');
 
         return response()->json([
             'status' => 'ok',
