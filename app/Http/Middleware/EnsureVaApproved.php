@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureVaApproved
+{
+    /**
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        if (! $user->isVa()) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Virtual assistant role required.'], 403);
+            }
+
+            return redirect()->route('dashboard')
+                ->with('error', 'You need a virtual assistant account to access this area.');
+        }
+
+        if (! $user->isVaApproved()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Your virtual assistant profile must be approved before accessing VA features.',
+                ], 403);
+            }
+
+            return redirect()->route('dashboard')
+                ->with('error', 'Your virtual assistant profile is pending approval.');
+        }
+
+        return $next($request);
+    }
+}
