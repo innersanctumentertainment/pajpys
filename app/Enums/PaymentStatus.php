@@ -14,11 +14,6 @@ enum PaymentStatus: string
 
     public function isFinal(): bool
     {
-        return in_array($this, [
-            self::Succeeded,
-            self::Failed,
-            self::Cancelled,
-            self::Refunded,
-        ], true);
+        return in_array($this, [self::Succeeded, self::Failed, self::Cancelled, self::Refunded], true);
     }
 }

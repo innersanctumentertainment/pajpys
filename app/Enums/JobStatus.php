@@ -17,9 +17,6 @@ enum JobStatus: string
     case Cancelled = 'cancelled';
     case Disputed = 'disputed';
 
-    /**
-     * @return list<self>
-     */
     public function allowedTransitions(): array
     {
         return match ($this) {
