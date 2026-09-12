@@ -1,12 +1,12 @@
 # PAJPYS — Post A Job / Post Your Services
 
-**pajpys.com** is a Caribbean-first marketplace where people **post jobs** and **post services** — including virtual assistant work, professional services, creative work, and more.
+**pajpys.com** is a Caribbean-first marketplace where people **post jobs** and **post services** — professional services, creative work, technical help, and more.
 
 ## What PAJPYS does
 
 - **Post a Job** — Clients pay a **TTD $20 posting fee** per job (USD optional via admin), then fund the job budget through secure escrow
-- **Post Your Services** — Providers list services for free (VA services, creative, technical, professional)
-- **Virtual Assistants** — Full VA marketplace workflow: verification, job acceptance, agreements, completion
+- **Post Your Services** — Providers list services for free (creative, technical, professional, and more)
+- **Job providers** — Verification, job acceptance, agreements, and completion workflow
 - **15% withdrawal fee** — Unified platform fee on all wallet withdrawals
 - **WiPay payments** — TTD, USD, GBP with idempotent webhooks
 - **Financial ledger** — Immutable double-entry accounting
@@ -15,15 +15,29 @@
 
 - PHP 8.3+, Composer, Node.js 20+, SQLite (production) or MySQL (optional)
 
-## Local Setup
+## Local Setup (Windows — same pattern as Tactile / QuickInvoice)
+
+```powershell
+cd C:\Users\KyleGospel\Projects\pajpys
+.\tools\install-local.ps1
+.\tools\serve.ps1
+```
+
+Open **http://127.0.0.1:8095**
+
+First-time migration from Cursor Cloud? Run `webs\setup-local-machine.ps1` — it clones into `Projects\pajpys` and copies handoff docs to `Desktop\webs\pajpys`.
+
+Handoff prompt for new Cursor chats: `Desktop\webs\pajpys\MASTER_PROMPT.md`
+
+### Linux / macOS
 
 ```bash
 composer install && npm install
 cp .env.example .env && php artisan key:generate
-touch database/database.sqlite  # if using SQLite
+touch database/database.sqlite
 php artisan migrate --seed
 npm run build
-php artisan serve --port=43123
+php artisan serve --port=8095
 ```
 
 **Admin:** `admin@pajpys.com` / `password`
@@ -36,7 +50,7 @@ php artisan serve --port=43123
 | `/services` | Browse posted services |
 | `/client/jobs` | Post and manage jobs |
 | `/provider/services` | Post and manage services |
-| `/va/jobs/discover` | VA job marketplace |
+| `/va/jobs/discover` | Provider job marketplace |
 | `/admin/dashboard` | Admin command center |
 
 ## Testing
