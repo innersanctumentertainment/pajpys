@@ -1,4 +1,1 @@
-{
-  "mode": "catalog",
-  "note": "truncated push - full catalog pending"
-}
+PLACEHOLDER
