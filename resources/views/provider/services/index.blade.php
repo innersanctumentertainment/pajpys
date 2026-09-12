@@ -29,7 +29,7 @@
                         <h3 class="font-semibold text-pearl">{{ $listing->title }}</h3>
                         <p class="text-sm text-pearl/60">{{ ucfirst($listing->status->value) }}</p>
                     </div>
-                    <x-badge>{{ $listing->is_va_service ? 'VA Service' : 'Service' }}</x-badge>
+                    <x-badge>{{ ucfirst($listing->status->value) }}</x-badge>
                 </a>
             @endforeach
         </div>

@@ -27,7 +27,7 @@
 @endif
 
 @if (auth()->user()->isVa())
-    <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-pearl/40">Virtual Assistant</p>
+    <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-pearl/40">Jobs &amp; Work</p>
     <a href="{{ route('va.jobs.discover') }}" @class(['dashboard-nav-link', 'active' => $active === 'va.jobs.discover'])>
         Discover Jobs
     </a>

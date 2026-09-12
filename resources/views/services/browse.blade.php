@@ -9,7 +9,7 @@
         <header class="mb-10">
             <x-badge class="mb-4">Post Your Services</x-badge>
             <h1 class="font-display text-4xl font-bold text-pearl mb-3">Browse services</h1>
-            <p class="text-pearl/70 max-w-2xl">Find professionals offering virtual assistance, creative work, technical help, and more.</p>
+            <p class="text-pearl/70 max-w-2xl">Find professionals offering creative work, technical help, administrative support, and more.</p>
         </header>
 
         <form method="GET" class="glass-card p-4 mb-8 flex flex-wrap gap-3 items-end">
@@ -28,7 +28,7 @@
             </div>
             <label class="flex items-center gap-2 text-pearl/80 text-sm pb-2">
                 <input type="checkbox" name="va_only" value="1" @checked($filters['va_only'] ?? false)>
-                Virtual assistants only
+                Administrative services only
             </label>
             <x-button type="submit">Filter</x-button>
         </form>
@@ -39,8 +39,8 @@
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($services as $service)
                     <a href="{{ route('services.show', $service) }}" class="glass-card p-6 block hover:border-teal/40 transition-colors group">
-                        @if ($service->is_va_service)
-                            <x-badge class="mb-3">Virtual Assistant</x-badge>
+                        @if ($service->category)
+                            <x-badge class="mb-3">{{ $service->category->name }}</x-badge>
                         @endif
                         <h2 class="font-display text-lg font-semibold text-pearl group-hover:text-teal transition-colors">{{ $service->title }}</h2>
                         <p class="text-pearl/60 text-sm mt-2 line-clamp-3">{{ Str::limit($service->description, 120) }}</p>

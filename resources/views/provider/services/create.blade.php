@@ -39,7 +39,7 @@
                     <label for="service_type" class="form-label">Service type</label>
                     <select id="service_type" name="service_type" class="form-input w-full">
                         <option value="general">General</option>
-                        <option value="virtual_assistant">Virtual Assistant</option>
+                        <option value="virtual_assistant">Administrative</option>
                         <option value="professional">Professional</option>
                         <option value="creative">Creative</option>
                         <option value="technical">Technical</option>
@@ -70,7 +70,7 @@
             </div>
             <label class="flex items-center gap-2 text-pearl/80">
                 <input type="checkbox" name="is_va_service" value="1">
-                This is a virtual assistant service
+                This is an administrative / support service
             </label>
             <x-button type="submit">Save as draft</x-button>
         </form>
