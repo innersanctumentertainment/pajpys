@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Faq;
-use App\Models\FeaturedVa;
 use App\Models\HomepageContent;
+use App\Models\ServiceListing;
 use App\Models\Testimonial;
 use App\Services\PlatformSettingsService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -25,7 +26,7 @@ class HomeController extends Controller
         return view('home', [
             'categories' => $this->loadCategories(),
             'testimonials' => $this->loadTestimonials(),
-            'featuredVas' => $this->loadFeaturedVas(),
+            'featuredServices' => $this->loadFeaturedServices(),
             'faqs' => $this->loadFaqs(),
             'stats' => $this->loadStats(),
             'heroContent' => $this->loadSection('hero'),
@@ -67,7 +68,7 @@ class HomeController extends Controller
     private function loadTestimonials(): array
     {
         if (! Schema::hasTable('testimonials')) {
-            return $this->fallbackTestimonials();
+            return [];
         }
 
         try {
@@ -78,7 +79,7 @@ class HomeController extends Controller
                 ->get();
 
             if ($testimonials->isEmpty()) {
-                return $this->fallbackTestimonials();
+                return [];
             }
 
             return $testimonials->map(fn ($t) => [
@@ -90,41 +91,26 @@ class HomeController extends Controller
                 'avatar' => $t->avatar_path,
             ])->all();
         } catch (\Throwable) {
-            return $this->fallbackTestimonials();
+            return [];
         }
     }
 
-    private function loadFeaturedVas(): array
+    private function loadFeaturedServices(): Collection
     {
-        if (! Schema::hasTable('featured_vas')) {
-            return $this->fallbackFeaturedVas();
+        if (! Schema::hasTable('service_listings')) {
+            return collect();
         }
 
         try {
-            $featured = FeaturedVa::query()
-                ->active()
-                ->with('vaProfile')
-                ->orderBy('sort_order')
+            return ServiceListing::query()
+                ->public()
+                ->with('category')
+                ->orderByDesc('is_featured')
+                ->orderByDesc('published_at')
                 ->limit(4)
-                ->get()
-                ->filter(fn ($f) => $f->vaProfile !== null);
-
-            if ($featured->isEmpty()) {
-                return $this->fallbackFeaturedVas();
-            }
-
-            return $featured->map(fn ($f) => [
-                'name' => $f->vaProfile->display_name,
-                'headline' => $f->vaProfile->headline,
-                'rating' => $f->vaProfile->average_rating ?? 4.9,
-                'jobs' => $f->vaProfile->completed_jobs_count ?? 0,
-                'rate' => $f->vaProfile->hourly_rate_min,
-                'currency' => $f->vaProfile->currency ?? 'TTD',
-                'verified' => $f->vaProfile->is_verified,
-                'avatar' => $f->vaProfile->avatar_path,
-            ])->all();
+                ->get();
         } catch (\Throwable) {
-            return $this->fallbackFeaturedVas();
+            return collect();
         }
     }
 
@@ -163,7 +149,7 @@ class HomeController extends Controller
                     ->where('is_active', true)
                     ->first();
 
-                if ($section?->metadata) {
+                if ($section?->metadata && is_array($section->metadata) && count($section->metadata) > 0) {
                     return $section->metadata;
                 }
             } catch (\Throwable) {
@@ -171,12 +157,7 @@ class HomeController extends Controller
             }
         }
 
-        return [
-            ['value' => '2,400+', 'label' => 'Verified VAs across the Caribbean'],
-            ['value' => '18', 'label' => 'Island markets served'],
-            ['value' => '98%', 'label' => 'Client satisfaction rate'],
-            ['value' => '$4.2M', 'label' => 'Paid to Caribbean talent'],
-        ];
+        return [];
     }
 
     private function loadSection(string $key): ?array
@@ -234,55 +215,15 @@ class HomeController extends Controller
         ];
     }
 
-    private function fallbackTestimonials(): array
-    {
-        return [
-            [
-                'author' => 'Marcus Williams',
-                'title' => 'Founder',
-                'company' => 'Island Fresh Exports',
-                'content' => 'PAJPYS connected us with a VA in Kingston who handles our entire order pipeline. We cut admin time by 60% and finally have weekends back.',
-                'rating' => 5,
-                'avatar' => null,
-            ],
-            [
-                'author' => 'Dr. Aisha Mohammed',
-                'title' => 'Clinic Director',
-                'company' => 'Carib Wellness Group',
-                'content' => 'The vetting process gave us confidence. Our virtual assistant manages patient scheduling across three locations with zero missed appointments.',
-                'rating' => 5,
-                'avatar' => null,
-            ],
-            [
-                'author' => 'James O\'Connor',
-                'title' => 'CEO',
-                'company' => 'TradeWind Logistics',
-                'content' => 'Escrow payments and milestone tracking mean we only pay for completed work. It\'s the safest way we\'ve found to hire Caribbean talent remotely.',
-                'rating' => 5,
-                'avatar' => null,
-            ],
-        ];
-    }
-
-    private function fallbackFeaturedVas(): array
-    {
-        return [
-            ['name' => 'Keisha Thompson', 'headline' => 'Executive VA · 8 yrs experience', 'rating' => 4.98, 'jobs' => 142, 'rate' => 120, 'currency' => 'TTD', 'verified' => true, 'avatar' => null],
-            ['name' => 'Andre Baptiste', 'headline' => 'Bookkeeping & Finance Specialist', 'rating' => 4.95, 'jobs' => 89, 'rate' => 150, 'currency' => 'TTD', 'verified' => true, 'avatar' => null],
-            ['name' => 'Soraya Ali', 'headline' => 'Social Media & Content Strategist', 'rating' => 4.97, 'jobs' => 116, 'rate' => 110, 'currency' => 'TTD', 'verified' => true, 'avatar' => null],
-            ['name' => 'David Clarke', 'headline' => 'Customer Success & CRM Expert', 'rating' => 4.96, 'jobs' => 203, 'rate' => 100, 'currency' => 'TTD', 'verified' => true, 'avatar' => null],
-        ];
-    }
-
     private function fallbackFaqs(): array
     {
         return [
-            ['question' => 'How does PAJPYS vet virtual assistants?', 'answer' => 'Every VA completes identity verification, skills assessment, a background check, and a live interview. Only the top 15% of applicants are approved to join the marketplace.'],
+            ['question' => 'How does PAJPYS verify providers?', 'answer' => 'Providers can complete identity verification, skills assessment, and profile review before offering services or accepting jobs on the marketplace.'],
             ['question' => 'How are payments handled?', 'answer' => 'Funds are held in escrow when you hire talent on PAJPYS. Payment is released only when you approve completed work. All prices default to TTD; USD and other currencies can be configured in the backend where needed.'],
             ['question' => 'What if I\'m not satisfied with the work?', 'answer' => 'You can request revisions within the job scope. If issues persist, our dispute resolution team mediates fairly. Unreleased escrow funds remain protected until resolution.'],
-            ['question' => 'Can I hire part-time or for a single project?', 'answer' => 'Yes. Post one-off tasks, ongoing hourly work, or retainer arrangements. VAs set their availability and you agree on scope before work begins.'],
-            ['question' => 'Which Caribbean countries do you serve?', 'answer' => 'We operate across Jamaica, Trinidad & Tobago, Barbados, Bahamas, Guyana, and 13 more Caribbean territories—with VAs working in your timezone.'],
-            ['question' => 'Is there a fee to join as a client?', 'answer' => 'Creating an account is free. We charge a transparent 12% platform fee on completed transactions, which covers escrow, dispute support, and payment processing.'],
+            ['question' => 'Can I hire part-time or for a single project?', 'answer' => 'Yes. Post one-off tasks, ongoing hourly work, or retainer arrangements. Providers set their availability and you agree on scope before work begins.'],
+            ['question' => 'Which Caribbean countries do you serve?', 'answer' => 'PAJPYS operates across Jamaica, Trinidad & Tobago, Barbados, Bahamas, Guyana, and other Caribbean territories — with talent working in your timezone.'],
+            ['question' => 'Is there a fee to join as a client?', 'answer' => 'Creating an account is free. Job postings require a one-time posting fee. We charge a transparent platform fee on completed transactions, which covers escrow, dispute support, and payment processing.'],
         ];
     }
 }
