@@ -22,7 +22,7 @@ class WithdrawalService
     public function requestVaWithdrawal(User $user, int $amountMinor, string $currency = 'TTD'): WithdrawalRequest
     {
         if (! $user->isVa()) {
-            throw new InvalidArgumentException('Only virtual assistants can request VA withdrawals.');
+            throw new InvalidArgumentException('Only job providers can request provider withdrawals.');
         }
 
         if ($amountMinor < $this->fees->vaMinimumMinor()) {

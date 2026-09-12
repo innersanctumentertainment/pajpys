@@ -35,6 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SetActiveRole::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'deploy/migrate',
+        ]);
+
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
