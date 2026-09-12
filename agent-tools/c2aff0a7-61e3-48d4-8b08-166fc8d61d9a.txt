@@ -1,1 +1,1 @@
-LOAD_FROM_FILE
+__LOAD_FROM__/workspace/agent-tools/c2aff0a7-61e3-48d4-8b08-166fc8d61d9a.txt
