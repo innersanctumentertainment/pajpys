@@ -20,15 +20,20 @@ import * as tus from 'tus-js-client';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const TOKEN = process.env.HOSTINGER_API_TOKEN;
+const TOKEN = process.env.HOSTINGER_API_TOKEN || '';
 const USERNAME = process.env.HOSTINGER_USERNAME || 'u508215107';
 const DOMAIN = process.env.HOSTINGER_DOMAIN || 'agapetech.org';
 const PREFIX = (process.env.DEPLOY_PREFIX || 'pajpys').replace(/^\/+|\/+$/g, '');
 const BASE_URL = 'https://developers.hostinger.com/';
 const LIVE_URL = process.env.PAJPYS_LIVE_URL || `https://${PREFIX}.${DOMAIN}/`;
 
-if (!TOKEN) {
-  console.error('HOSTINGER_API_TOKEN is required');
+const hasTusCreds =
+  process.env.HOSTINGER_TUS_URL &&
+  process.env.HOSTINGER_TUS_AUTH_KEY &&
+  process.env.HOSTINGER_TUS_REST_AUTH_KEY;
+
+if (!TOKEN && !hasTusCreds) {
+  console.error('HOSTINGER_API_TOKEN or HOSTINGER_TUS_* credentials are required');
   process.exit(1);
 }
 if (!PREFIX) {
@@ -96,6 +101,14 @@ const headers = {
 };
 
 async function getCreds() {
+  if (process.env.HOSTINGER_TUS_URL && process.env.HOSTINGER_TUS_AUTH_KEY && process.env.HOSTINGER_TUS_REST_AUTH_KEY) {
+    return {
+      url: process.env.HOSTINGER_TUS_URL,
+      auth_key: process.env.HOSTINGER_TUS_AUTH_KEY,
+      rest_auth_key: process.env.HOSTINGER_TUS_REST_AUTH_KEY,
+    };
+  }
+
   const { data, status } = await axios.post(
     `${BASE_URL}api/hosting/v1/files/upload-urls`,
     { username: USERNAME, domain: DOMAIN },
@@ -150,9 +163,19 @@ function phpVersion() {
   }
 }
 
+function composerCmd() {
+  if (process.platform === 'win32') {
+    const winComposer = path.join(process.env.LOCALAPPDATA || '', 'bin', 'composer.cmd');
+    if (fs.existsSync(winComposer)) return `"${winComposer}"`;
+    const phar = path.join(process.env.LOCALAPPDATA || '', 'composer.phar');
+    if (fs.existsSync(phar)) return `php "${phar}"`;
+  }
+  return 'composer';
+}
+
 function hasComposer() {
   try {
-    execSync('composer --version', { stdio: 'pipe' });
+    execSync(`${composerCmd()} --version`, { stdio: 'pipe', shell: true });
     return true;
   } catch {
     return false;
@@ -179,19 +202,41 @@ function ensurePhpComposer() {
   }
 }
 
+function lockfileIsValid() {
+  try {
+    JSON.parse(fs.readFileSync(path.join(ROOT, 'composer.lock'), 'utf8'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function buildApp() {
-  ensurePhpComposer();
-  console.log('Installing PHP dependencies (production)...');
-  execSync('composer install --no-dev --optimize-autoloader --no-interaction', {
-    cwd: ROOT,
-    stdio: 'inherit',
-  });
+  const hasVendor = fs.existsSync(path.join(ROOT, 'vendor', 'autoload.php'));
+  if (lockfileIsValid()) {
+    ensurePhpComposer();
+    console.log('Installing PHP dependencies (production)...');
+    execSync(`${composerCmd()} install --no-dev --optimize-autoloader --no-interaction`, {
+      cwd: ROOT,
+      stdio: 'inherit',
+      shell: true,
+    });
+  } else if (hasVendor) {
+    console.log('Skipping composer install (vendor/ present; composer.lock invalid)');
+  } else {
+    throw new Error('vendor/ missing and composer.lock is invalid');
+  }
 
   console.log('Building frontend assets...');
   execSync('npm ci --ignore-scripts && npm run build', { cwd: ROOT, stdio: 'inherit' });
 }
 
 async function ensureSubdomain() {
+  if (process.env.HOSTINGER_SKIP_SUBDOMAIN === '1') {
+    console.log(`skipping subdomain check (${PREFIX}.${DOMAIN} assumed configured)`);
+    return;
+  }
+
   const listUrl = `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/subdomains`;
   const { data: listData, status: listStatus } = await axios.get(listUrl, {
     headers,
@@ -362,13 +407,18 @@ async function main() {
   const files = walkFiles(ROOT).sort();
   console.log(`Deploying ${files.length} files to ${DOMAIN}/${PREFIX}/`);
 
-  const envPath = path.join(ROOT, '.env.deploy');
-  fs.writeFileSync(envPath, resolveProductionEnvBytes());
-  const remote = `${PREFIX}/.env`;
-  process.stdout.write(`upload ${remote} ... `);
-  await uploadFile(envPath, remote, creds);
-  fs.unlinkSync(envPath);
-  console.log('ok');
+  const envB64 = process.env.APP_ENV_B64 || process.env.ENV_B64 || '';
+  if (envB64) {
+    const envPath = path.join(ROOT, '.env.deploy');
+    fs.writeFileSync(envPath, resolveProductionEnvBytes());
+    const remote = `${PREFIX}/.env`;
+    process.stdout.write(`upload ${remote} (from APP_ENV_B64) ... `);
+    await uploadFile(envPath, remote, creds);
+    fs.unlinkSync(envPath);
+    console.log('ok');
+  } else {
+    console.log('No APP_ENV_B64/ENV_B64; keeping existing server .env');
+  }
 
   let n = 0;
   for (const rel of files) {
@@ -382,11 +432,15 @@ async function main() {
   await ensureRuntimeDirs(creds);
   await runProductionMigrate();
 
-  await axios.delete(
-    `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/cache/clear`,
-    { headers, validateStatus: () => true }
-  );
-  console.log('cache cleared');
+  if (TOKEN) {
+    await axios.delete(
+      `${BASE_URL}api/hosting/v1/accounts/${USERNAME}/websites/${DOMAIN}/cache/clear`,
+      { headers, validateStatus: () => true }
+    );
+    console.log('cache cleared');
+  } else {
+    console.log('cache clear skipped (no HOSTINGER_API_TOKEN); purge LiteSpeed cache in hPanel if needed');
+  }
   console.log(`DEPLOY_OK ${PREFIX} ${LIVE_URL}`);
 }
 

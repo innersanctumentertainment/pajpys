@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'PAJPYS')
-@section('meta_description', 'PAJPYS — Hire verified Caribbean virtual assistants. Escrow-protected payments, vetted talent, and timezone-aligned support.')
+@section('meta_description', 'PAJPYS — Post a job. Post your services. Caribbean-first marketplace with escrow-protected payments and verified talent.')
 
 @section('content')
 <div class="gradient-hero min-h-screen">
@@ -17,7 +17,9 @@
                     <a href="#how-it-works" class="nav-link">How it works</a>
                     <a href="{{ route('services.browse') }}" class="nav-link">Browse services</a>
                     <a href="#categories" class="nav-link">Categories</a>
-                    <a href="#featured" class="nav-link">Top talent</a>
+                    @if ($featuredServices->isNotEmpty())
+                        <a href="#featured" class="nav-link">Featured</a>
+                    @endif
                     <a href="#pricing" class="nav-link">Pricing</a>
                     <a href="#faq" class="nav-link">FAQ</a>
                 </nav>
@@ -162,43 +164,39 @@
         </div>
     </section>
 
-    {{-- Featured VAs --}}
-    <section id="featured" class="py-20 lg:py-28">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <x-badge variant="verified" class="mb-4">✓ Top rated</x-badge>
-                <h2 class="section-heading text-pearl mb-4">Featured virtual assistants</h2>
-                <p class="section-subheading mx-auto">Hand-picked talent with proven track records across the Caribbean.</p>
-            </div>
+    @if ($featuredServices->isNotEmpty())
+        {{-- Featured services --}}
+        <section id="featured" class="py-20 lg:py-28">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <x-badge variant="verified" class="mb-4">✓ Featured</x-badge>
+                    <h2 class="section-heading text-pearl mb-4">Featured services</h2>
+                    <p class="section-subheading mx-auto">Browse professional services posted on PAJPYS.</p>
+                </div>
 
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                @foreach($featuredVas as $va)
-                    <x-card class="text-center hover:border-teal/30 transition-colors">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-teal/30 to-coral/20 flex items-center justify-center text-2xl font-display font-bold text-pearl">
-                            {{ strtoupper(substr($va['name'], 0, 1)) }}
-                        </div>
-                        <h3 class="font-display font-semibold text-pearl mb-1">{{ $va['name'] }}</h3>
-                        <p class="text-xs text-pearl/50 mb-3">{{ $va['headline'] }}</p>
-
-                        <div class="flex items-center justify-center gap-3 text-sm mb-4">
-                            <span class="star-rating">★ {{ number_format($va['rating'], 2) }}</span>
-                            <span class="text-pearl/30">·</span>
-                            <span class="text-pearl/50">{{ $va['jobs'] }} jobs</span>
-                        </div>
-
-                        <div class="flex items-center justify-center gap-2 mb-4">
-                            <span class="font-display font-bold text-teal">${{ number_format($va['rate'], 0) }}/hr</span>
-                            @if($va['verified'])
-                                <x-badge variant="verified">Verified</x-badge>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    @foreach ($featuredServices as $service)
+                        <a href="{{ route('services.show', $service) }}" class="glass-card p-6 block hover:border-teal/30 transition-colors group">
+                            @if ($service->category)
+                                <x-badge class="mb-3">{{ $service->category->name }}</x-badge>
                             @endif
-                        </div>
+                            <h3 class="font-display font-semibold text-pearl group-hover:text-teal transition-colors mb-2">{{ $service->title }}</h3>
+                            <p class="text-xs text-pearl/50 line-clamp-3">{{ Str::limit($service->description, 100) }}</p>
+                            @if ($service->price_amount_minor)
+                                <p class="mt-4 text-teal font-semibold text-sm">
+                                    From {{ $service->currency }} {{ number_format($service->price_amount_minor / 100, 2) }}
+                                </p>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
 
-                        <x-button variant="secondary" href="#" class="w-full text-sm !py-2">View profile</x-button>
-                    </x-card>
-                @endforeach
+                <div class="text-center mt-10">
+                    <x-button variant="secondary" href="{{ route('services.browse') }}">Browse all services</x-button>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
+    @endif
 
     {{-- Trust & Security --}}
     <section class="py-20 lg:py-28 border-t border-white/5 bg-ocean-mid/20">
@@ -207,12 +205,12 @@
                 <div>
                     <x-badge class="mb-4">Trust & security</x-badge>
                     <h2 class="section-heading text-pearl mb-6">Your business, protected at every step</h2>
-                    <p class="text-pearl/65 leading-relaxed mb-8">PAJPYS was built for Caribbean businesses that need reliable remote support without the risk. Every transaction is escrow-protected, every VA is verified, and every dispute is handled fairly.</p>
+                    <p class="text-pearl/65 leading-relaxed mb-8">PAJPYS was built for Caribbean businesses that need reliable remote support without the risk. Every transaction is escrow-protected, providers can be verified, and every dispute is handled fairly.</p>
 
                     <ul class="space-y-4">
                         @foreach([
                             ['icon' => '🔒', 'title' => 'Escrow payments', 'desc' => 'Funds held securely until you approve completed work.'],
-                            ['icon' => '🛡️', 'title' => 'Identity verification', 'desc' => 'Government ID, skills tests, and live interviews for every VA.'],
+                            ['icon' => '🛡️', 'title' => 'Identity verification', 'desc' => 'Optional verification for providers who want to build trust on the platform.'],
                             ['icon' => '⚖️', 'title' => 'Dispute resolution', 'desc' => 'Dedicated team mediates fairly when issues arise.'],
                             ['icon' => '🔐', 'title' => 'Data encryption', 'desc' => 'Bank-grade encryption for messages, files, and payments.'],
                         ] as $feature)
@@ -227,47 +225,56 @@
                     </ul>
                 </div>
 
-                <div class="glass-card p-8 lg:p-10">
-                    <div class="grid grid-cols-2 gap-6">
-                        @foreach($stats as $stat)
-                            <div class="text-center p-4">
-                                <div class="font-display text-3xl lg:text-4xl font-bold text-teal mb-1">{{ $stat['value'] }}</div>
-                                <div class="text-xs text-pearl/50 leading-snug">{{ $stat['label'] }}</div>
-                            </div>
-                        @endforeach
+                @if (count($stats) > 0)
+                    <div class="glass-card p-8 lg:p-10">
+                        <div class="grid grid-cols-2 gap-6">
+                            @foreach ($stats as $stat)
+                                <div class="text-center p-4">
+                                    <div class="font-display text-3xl lg:text-4xl font-bold text-teal mb-1">{{ $stat['value'] }}</div>
+                                    <div class="text-xs text-pearl/50 leading-snug">{{ $stat['label'] }}</div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
+                @else
+                    <div class="glass-card p-8 lg:p-10 text-center">
+                        <p class="font-display text-xl font-semibold text-pearl mb-2">Built for the Caribbean</p>
+                        <p class="text-sm text-pearl/60 leading-relaxed">Connect with local talent, pay securely, and grow your business on PAJPYS.</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </section>
+
+    @if (count($testimonials) > 0)
+        {{-- Testimonials --}}
+        <section class="py-20 lg:py-28">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <x-badge variant="coral" class="mb-4">Client stories</x-badge>
+                    <h2 class="section-heading text-pearl mb-4">Trusted by Caribbean businesses</h2>
+                    <p class="section-subheading mx-auto">Real results from companies who hired through PAJPYS.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
+                    @foreach ($testimonials as $testimonial)
+                        <x-card>
+                            <div class="star-rating text-sm mb-4" aria-label="{{ $testimonial['rating'] }} out of 5 stars">
+                                @for ($i = 0; $i < ($testimonial['rating'] ?? 5); $i++)★@endfor
+                            </div>
+                            <blockquote class="text-pearl/80 text-sm leading-relaxed mb-6">"{{ $testimonial['content'] }}"</blockquote>
+                            <footer>
+                                <cite class="not-italic">
+                                    <div class="font-display font-semibold text-pearl text-sm">{{ $testimonial['author'] }}</div>
+                                    <div class="text-xs text-pearl/50">{{ $testimonial['title'] }}{{ $testimonial['company'] ? ', ' . $testimonial['company'] : '' }}</div>
+                                </cite>
+                            </footer>
+                        </x-card>
+                    @endforeach
                 </div>
             </div>
-        </div>
-    </section>
-
-    {{-- Testimonials --}}
-    <section class="py-20 lg:py-28">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <x-badge variant="coral" class="mb-4">Client stories</x-badge>
-                <h2 class="section-heading text-pearl mb-4">Trusted by Caribbean businesses</h2>
-                <p class="section-subheading mx-auto">Real results from companies who hired through PAJPYS.</p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
-                @foreach($testimonials as $testimonial)
-                    <x-card>
-                        <div class="star-rating text-sm mb-4" aria-label="{{ $testimonial['rating'] }} out of 5 stars">
-                            @for($i = 0; $i < ($testimonial['rating'] ?? 5); $i++)★@endfor
-                        </div>
-                        <blockquote class="text-pearl/80 text-sm leading-relaxed mb-6">"{{ $testimonial['content'] }}"</blockquote>
-                        <footer>
-                            <cite class="not-italic">
-                                <div class="font-display font-semibold text-pearl text-sm">{{ $testimonial['author'] }}</div>
-                                <div class="text-xs text-pearl/50">{{ $testimonial['title'] }}{{ $testimonial['company'] ? ', ' . $testimonial['company'] : '' }}</div>
-                            </cite>
-                        </footer>
-                    </x-card>
-                @endforeach
-            </div>
-        </div>
-    </section>
+        </section>
+    @endif
 
     {{-- Pricing --}}
     <section id="pricing" class="py-20 lg:py-28 border-t border-white/5 bg-ocean-mid/30">

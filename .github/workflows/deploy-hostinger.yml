@@ -1,0 +1,42 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DEPLOY_PREFIX: pajpys
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.repository == 'innersanctumentertainment/pajpys'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, curl, zip, sqlite3, bcmath
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: composer install --no-dev --optimize-autoloader --no-interaction
+      - run: npm ci --ignore-scripts && npm run build
+      - name: Deploy to Hostinger
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_USERNAME: u508215107
+          HOSTINGER_DOMAIN: agapetech.org
+          DEPLOY_PREFIX: pajpys
+          APP_ENV_B64: ${{ secrets.APP_ENV_B64 }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
+          HOSTINGER_SKIP_SUBDOMAIN: '1'
+        run: node tools/hostinger-deploy.mjs
+      - name: Smoke test
+        run: |
+          for path in / /services /login /register; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "https://pajpys.agapetech.org${path}")
+            test "$code" = "200" || (echo "FAIL ${path} -> ${code}" && exit 1)
+          done
+          curl -sS https://pajpys.agapetech.org/ | grep -q PAJPYS
